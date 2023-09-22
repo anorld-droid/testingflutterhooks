@@ -24,13 +24,29 @@ class HomePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateTime = useStream(getTime());
-
+    // final dateTime = useStream(getTime());
+    final controller = useTextEditingController();
+    final text = useState('');
+    useEffect(
+      () {
+        controller.addListener(() {
+          text.value = controller.text;
+        });
+        return null;
+      },
+      [controller],
+    );
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(dateTime.data ?? 'Home Page'),
+        title: const Text('Home Page'),
       ),
+      body: Column(children: [
+        TextField(
+          controller: controller,
+        ),
+        Text('New Typed: ${text.value}'),
+      ]),
     );
   }
 }
