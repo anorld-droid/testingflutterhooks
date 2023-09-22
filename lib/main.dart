@@ -9,7 +9,7 @@ void main() {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const HomePage(title: 'Flutter Demo Home Page'),
+      home: const HomePage(),
     ),
   );
 }
@@ -19,23 +19,17 @@ Stream<String> getTime() => Stream.periodic(
       (_) => DateTime.now().toIso8601String(),
     );
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.title});
+class HomePage extends HookWidget {
+  const HomePage({super.key});
 
-  final String title;
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  final dateTime = useStream(getTime());
   @override
   Widget build(BuildContext context) {
+    final dateTime = useStream(getTime());
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(dateTime.data ?? widget.title),
+        title: Text(dateTime.data ?? 'Home Page'),
       ),
     );
   }
