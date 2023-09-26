@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -23,28 +23,20 @@ void main() {
   );
 }
 
-Stream<String> getTime() => Stream.periodic(
-      const Duration(seconds: 1),
-      (_) => DateTime.now().toIso8601String(),
-    );
+const url =
+    'https://images.unsplash.com/photo-1495107334309-fcf20504a5ab?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTIyfHxuYXR1cmV8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60';
+const imageHeight = 300.0;
 
-// const url = 'https://bit.ly/3qYOtDm';
-
-class Countdown extends ValueNotifier<int> {
-  late StreamSubscription sub;
-  Countdown({required int from}) : super(from) {
-    sub = Stream.periodic(const Duration(seconds: 1), (v) => from - v)
-        .takeWhile((value) => value >= 0)
-        .listen((value) {
-      this.value = value;
-    });
-  }
-
-  @override
-  void dispose() {
-    sub.cancel();
-    super.dispose();
-  }
+extension Normalize on num {
+  num normalize(
+    num selfRangeMin,
+    num selfRamgeMax, [
+    num normalizedRangeMin = 0.0,
+    num normalizedRangeMax = 1.0,
+  ]) =>
+      (normalizedRangeMax - normalizedRangeMin) *
+          ((this - selfRangeMin) / (selfRamgeMax - selfRangeMin)) +
+      normalizedRangeMin;
 }
 
 class HomePage extends HookWidget {
@@ -52,8 +44,31 @@ class HomePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final countdown = useMemoized(() => Countdown(from: 20));
-    final notifier = useListenable(countdown);
+    final opacity = useAnimationController(
+      duration: const Duration(seconds: 1),
+      initialValue: 1.0,
+      lowerBound: 0.0,
+      upperBound: 1.0,
+    );
+
+    final size = useAnimationController(
+      duration: const Duration(seconds: 1),
+      initialValue: 1.0,
+      lowerBound: 0.0,
+      upperBound: 1.0,
+    );
+
+    final controller = useScrollController();
+    useEffect(() {
+      controller.addListener(() {
+        final newOpacity = max(imageHeight - controller.offset, 0.0);
+        final normalized = newOpacity.normalize(0, imageHeight).toDouble();
+        opacity.value = normalized;
+        size.value = normalized;
+      });
+      return null;
+    }, [controller]);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -62,37 +77,32 @@ class HomePage extends HookWidget {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            notifier.value.toString(),
-            style: const TextStyle(fontSize: 32),
+          SizeTransition(
+            sizeFactor: size,
+            axis: Axis.vertical,
+            axisAlignment: -1.0,
+            child: FadeTransition(
+              opacity: opacity,
+              child: Image.network(
+                url,
+                height: imageHeight,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              controller: controller,
+              itemCount: 100,
+              itemBuilder: (_, index) {
+                return ListTile(
+                  title: Text('Person ${index + 1}'),
+                );
+              },
+            ),
           )
         ],
       ),
     );
-    // body: Column(children: [
-    //   TextField(
-    //     controller: controller,
-    //   ),
-    //   Text('New Typed: ${text.value}'),
-    // ]),
-    // );
-    // final dateTime = useStream(getTime());
-    // final controller = useTextEditingController();
-    // final text = useState('');
-    // useEffect(
-    //   () {
-    //     controller.addListener(() {
-    //       text.value = controller.text;
-    //     });
-    //     return null;
-    //   },
-    //   [controller],
-    // );
-    // To avoid the flicker where useFuture continously loads data, we use useMemoized for caching
-    // final future = useMemoized(() => NetworkAssetBundle(Uri.parse(url))
-    //     .load(url)
-    //     .then((data) => data.buffer.asUint8List())
-    //     .then((data) => Image.memory(data)));
-    // final snapshot = useFuture(future);
   }
 }
